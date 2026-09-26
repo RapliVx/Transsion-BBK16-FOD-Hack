@@ -88,7 +88,7 @@
 
     invoke-direct {v3, p0}, Lcom/oplus/systemui/biometrics/finger/udfps/OnScreenFingerprintIcon$FingerKeyReceiver$1;-><init>(Lcom/oplus/systemui/biometrics/finger/udfps/OnScreenFingerprintIcon$FingerKeyReceiver;)V
 
-    invoke-static {v3}, Lcom/oplus/systemui/biometrics/finger/udfps/OnScreenFingerprintUiMech;->updateOpticalUI(Ljava/lang/Runnable;)V
+    invoke-static {v3}, Lcom/oplus/systemui/biometrics/finger/KeyguardFingerprintUtils;->updateOpticalUI(Ljava/lang/Runnable;)V
 
     invoke-virtual {v1}, Lcom/oplus/systemui/biometrics/finger/udfps/OnScreenFingerprintIcon;->handleFingerprintKeyPress()V
 
@@ -141,7 +141,7 @@
 
     invoke-direct {v4, p0}, Lcom/oplus/systemui/biometrics/finger/udfps/OnScreenFingerprintIcon$FingerKeyReceiver$2;-><init>(Lcom/oplus/systemui/biometrics/finger/udfps/OnScreenFingerprintIcon$FingerKeyReceiver;)V
 
-    invoke-static {v4}, Lcom/oplus/systemui/biometrics/finger/udfps/OnScreenFingerprintUiMech;->updateOpticalUI(Ljava/lang/Runnable;)V
+    invoke-static {v4}, Lcom/oplus/systemui/biometrics/finger/KeyguardFingerprintUtils;->updateOpticalUI(Ljava/lang/Runnable;)V
 
     goto :goto_35
 
