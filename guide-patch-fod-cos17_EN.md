@@ -1,85 +1,85 @@
-# Panduan Ultimate Patch FOD - ColorOS 17 (Android 14+)
+# Ultimate FOD Patch Guide - ColorOS 17 (Android 14+)
 > [!NOTE] 
-> **Dokumen ini adalah versi penyempurnaan (Perfected Edition) dari repositori `Transsion-BBK16-FOD-Hack`.**
-> Direvisi dan dioptimalkan secara khusus untuk mengatasi masalah kompatibilitas, *Force Close*, dan perubahan arsitektur keamanan pada ColorOS 17 (Android 17 / SDK 34+).
+> **This document is the Perfected Edition of the `Transsion-BBK16-FOD-Hack` repository.**
+> It has been specifically revised and optimized to fix compatibility issues, Force Closes, and security architecture changes present in ColorOS 17 (Android 17 / SDK 34+).
 
 ---
 
-## Kenapa Panduan Ini Dibuat? (Analisa Bug & Crash)
-Jika kamu menggunakan panduan lama BBK16 mentah-mentah pada OS 17, **SystemUI dipastikan akan mengalami *Crash* atau *Bug***. Berikut adalah 6 kendala utama dan bagaimana panduan ini memperbaikinya:
+## Why Was This Guide Created? (Bug & Crash Analysis)
+If you blindly follow the old BBK16 guide on OS 17, **your SystemUI will definitely crash or experience bugs**. Here are the 6 main issues and how this guide fixes them:
 
-| Jenis Masalah | Penyebab di OS 17 | Solusi di Panduan Ini |
+| Issue / Bug | Cause in OS 17 | Solution in This Guide |
 | :--- | :--- | :--- |
-| **`NullPointerException`** | Register `p1` (Context) dihancurkan oleh sistem sesaat sebelum inisialisasi selesai. | Mengambil *Context* secara aman menggunakan `invoke-virtual {p0}, ImageView;->getContext()`. |
-| **`SecurityException`** | Aturan ketat Android 14+ menolak receiver eksternal yang tidak memiliki *flag* keamanan. | Menambahkan *flag* `RECEIVER_EXPORTED` (`0x2`) ke parameter `registerReceiver`. |
-| **`NoSuchMethodError` (Icon)** | Panduan lama lupa menyertakan instruksi untuk meng-*copy* method HBM & interaksi sentuhan jari. | Menginjeksi 5 *method* vital pembentuk HBM di akhir file `OnScreenFingerprintIcon.smali`. |
-| **`NoSuchMethodError` (Receiver)** | Lokasi fungsi `updateOpticalUI` di OS 17 telah dipindah oleh developer Oplus ke kelas `KeyguardFingerprintUtils`. | Mengubah target *invoke-static* di dalam file `FingerKeyReceiver.smali` ke kelas yang baru. |
-| **Ikon Putih Nyangkut** | Saat berhasil *unlock*, sistem menghapus ikon asli tapi HBM buatan kita tertinggal di layar sampai jari dilepas. | Melakukan *hooking* ke dalam method `setVisibility(I)V` untuk otomatis menghancurkan HBM. |
-| **Layar Gelap Total** | Layar mendadak gelap pekat di Lockscreen/pengaturan sidik jari karena sistem me-render *Dim Layer* (overlay hitam). | Memanipulasi fungsi `isDisableAppDimLayer()` di file UiMech agar bernilai `True`. |
+| **`NullPointerException`** | Register `p1` (Context) gets destroyed by the system right before initialization finishes. | Safely fetch the *Context* using `invoke-virtual {p0}, ImageView;->getContext()`. |
+| **`SecurityException`** | Android 14+ strictly rejects external receivers that lack security flags. | Inject the `RECEIVER_EXPORTED` (`0x2`) flag into the `registerReceiver` parameter. |
+| **`NoSuchMethodError` (Icon)** | The old guide forgot to instruct users to copy the HBM and fingerprint touch methods. | Explicitly inject 5 vital HBM *methods* at the bottom of `OnScreenFingerprintIcon.smali`. |
+| **`NoSuchMethodError` (Receiver)** | The `updateOpticalUI` function has been moved by Oplus developers to the `KeyguardFingerprintUtils` class in OS 17. | Change the *invoke-static* target inside the `FingerKeyReceiver.smali` file to the new class. |
+| **White Icon Stuck** | After a successful unlock, the system hides the original icon but our custom HBM gets left behind until the finger is lifted. | Hook into the `setVisibility(I)V` method to automatically destroy the HBM. |
+| **Pitch Black Screen** | The screen suddenly goes pitch black on the Lockscreen/fingerprint enrollment because the system renders a *Dim Layer* (black overlay). | Manipulate the `isDisableAppDimLayer()` function in the UiMech file to return `True`. |
 
 ---
 
-## Persiapan (Prerequisites)
+## Prerequisites
 > [!IMPORTANT]
-> Pastikan kamu sudah menyiapkan hal-hal berikut sebelum memulai:
-- Aplikasi **MT Manager** (atau Dex Editor Plus).
-- APK `SystemUI.apk` ori yang sudah ditarik dari perangkat.
-- File-file `.smali` pendukung dari repo BBK16.
-- 💡 **INFO PENTING COS17:** Di ColorOS 17, seluruh file dan kode yang berhubungan dengan *Fingerprint on Display* (FOD) berada di dalam **`classes3.dex`**. Jangan mencarinya di `classes.dex` atau `classes2.dex`.
+> Make sure you have the following ready before starting:
+- **MT Manager** app (or Dex Editor Plus).
+- The original `SystemUI.apk` pulled from your device.
+- The supporting `.smali` files from the BBK16 repo.
+- 💡 **CRUCIAL COS17 INFO:** In ColorOS 17, all files and codes related to *Fingerprint on Display* (FOD) are located inside **`classes3.dex`**. Do not look for them in `classes.dex` or `classes2.dex`.
 
 ---
 
-## Langkah-langkah Eksekusi
+## Execution Steps
 
-### Langkah 1: Tambahkan 4 File Smali Baru
-1. Buka `SystemUI.apk` di MT Manager.
-2. Pilih file **`classes3.dex`** lalu buka menggunakan **Dex Editor Plus**.
-3. Navigasi ke direktori berikut:
+### Step 1: Add 4 New Smali Files
+1. Open `SystemUI.apk` in MT Manager.
+2. Select the **`classes3.dex`** file and open it using **Dex Editor Plus**.
+3. Navigate to the following directory:
    📁 `com/oplus/systemui/biometrics/finger/udfps/`
-4. Tambahkan *(Copy/Add)* 4 file smali ini ke dalam folder tersebut:
+4. Add *(Copy/Add)* these 4 smali files into the folder:
    - 📄 `OnScreenFingerprintIcon$FingerKeyReceiver.smali`
    - 📄 `OnScreenFingerprintIcon$FingerKeyReceiver$1.smali`
    - 📄 `OnScreenFingerprintIcon$FingerKeyReceiver$2.smali`
-   - 📄 `OnScreenFingerprintIcon$1.smali` *(Timpa jika sudah ada file aslinya)*
+   - 📄 `OnScreenFingerprintIcon$1.smali` *(Overwrite if the original file exists)*
 
 ---
 
-### Langkah 2: Cek & Patch `FingerKeyReceiver.smali` (JIKA BELUM)
+### Step 2: Check & Patch `FingerKeyReceiver.smali` (IF NOT ALREADY PATCHED)
 > [!NOTE] 
-> ***Lewati langkah ini jika kamu menggunakan file smali yang sudah di-patch otomatis oleh author. Lakukan hanya jika file smali-mu masih versi lama/asli dari repo BBK16.***
+> ***Skip this step if you are using pre-patched smali files provided by the author. Do this only if your smali files are the original untouched ones from the old BBK16 repository.***
 
-Perubahan arsitektur di ColorOS 17 membuat file receiver bawaan BBK16 memanggil *class* yang sudah dipindah, sehingga memicu *Crash/Force Close* seketika saat sidik jari disentuh.
+The architecture changes in ColorOS 17 mean the default BBK16 receiver file calls a class that has been moved, triggering an instant *Crash/Force Close* as soon as you touch the fingerprint icon.
 
-1. Buka file **`OnScreenFingerprintIcon$FingerKeyReceiver.smali`** yang baru saja kamu tambahkan di Langkah 1.
-2. Gunakan fitur pencarian dan cari:
+1. Open the **`OnScreenFingerprintIcon$FingerKeyReceiver.smali`** file that you just added in Step 1.
+2. Use the search feature to find:
    🔍 `updateOpticalUI`
-3. Kamu akan menemukannya di **2 baris**. Ubah kode pemanggilannya dari `OnScreenFingerprintUiMech` menjadi `KeyguardFingerprintUtils`.
+3. You will find it in **2 lines**. Change the calling code from `OnScreenFingerprintUiMech` to `KeyguardFingerprintUtils`.
 
-**Ubah baris ini (KODE LAMA):**
+**Change these lines (OLD CODE):**
 ```smali
 invoke-static {v3}, Lcom/oplus/systemui/biometrics/finger/udfps/OnScreenFingerprintUiMech;->updateOpticalUI(Ljava/lang/Runnable;)V
 ```
-dan
+and
 ```smali
 invoke-static {v4}, Lcom/oplus/systemui/biometrics/finger/udfps/OnScreenFingerprintUiMech;->updateOpticalUI(Ljava/lang/Runnable;)V
 ```
 
-**Menjadi (KODE BARU OS 17):**
+**To this (NEW OS 17 CODE):**
 ```smali
 invoke-static {v3}, Lcom/oplus/systemui/biometrics/finger/KeyguardFingerprintUtils;->updateOpticalUI(Ljava/lang/Runnable;)V
 ```
-dan
+and
 ```smali
 invoke-static {v4}, Lcom/oplus/systemui/biometrics/finger/KeyguardFingerprintUtils;->updateOpticalUI(Ljava/lang/Runnable;)V
 ```
 
 ---
 
-### Langkah 3: Patch `OnScreenFingerprintIcon.smali` (Inti FOD)
-Buka file **`OnScreenFingerprintIcon.smali`** lalu eksekusi tahap A, B, C, dan D di bawah ini secara teliti.
+### Step 3: Patch `OnScreenFingerprintIcon.smali` (FOD Core)
+Open the **`OnScreenFingerprintIcon.smali`** file and carefully execute steps A, B, C, and D below.
 
-#### 3A. Injeksi Variabel (Fields)
-Cari blok dengan nama `# instance fields` (biasanya ada di bagian paling atas). Tambahkan 3 variabel penampung memori ini di bawahnya:
+#### 3A. Variable Injection (Fields)
+Search for the `# instance fields` block (usually near the top). Add these 3 memory variables right below it:
 
 ```smali
 .field public mHbmDummyView:Landroid/view/View;
@@ -87,11 +87,11 @@ Cari blok dengan nama `# instance fields` (biasanya ada di bagian paling atas). 
 .field private mFingerKeyReceiver:Lcom/oplus/systemui/biometrics/finger/udfps/OnScreenFingerprintIcon$FingerKeyReceiver;
 ```
 
-#### 3B. Patch Constructor (Fix SecurityException & NullPointer)
-Gunakan fitur pencarian dan cari: 
+#### 3B. Patch the Constructor (Fix SecurityException & NullPointer)
+Use the search feature and look for: 
 🔍 `.method public constructor <init>(`
 
-Scroll ke bagian **paling bawah** method tersebut, tepat di **ATAS** `return-void`. Ubah baris penutup pendaftaran *receiver*-nya menggunakan *flag* `0x2` persis seperti ini:
+Scroll to the **very bottom** of that method, right **ABOVE** `return-void`. Change its receiver registration ending lines by using the `0x2` flag exactly like this:
 
 ```smali
     new-instance v0, Lcom/oplus/systemui/biometrics/finger/udfps/OnScreenFingerprintIcon$FingerKeyReceiver;
@@ -105,11 +105,11 @@ Scroll ke bagian **paling bawah** method tersebut, tepat di **ATAS** `return-voi
     const-string v2, "com.rianixia.FINGER_UP"
     invoke-virtual {v1, v2}, Landroid/content/IntentFilter;->addAction(Ljava/lang/String;)V
 
-    # --- AMBIL CONTEXT DARI VIEW ---
+    # --- FETCH CONTEXT DIRECTLY FROM VIEW ---
     invoke-virtual {p0}, Landroid/widget/ImageView;->getContext()Landroid/content/Context;
     move-result-object v2
 
-    # --- INJEKSI FLAG RECEIVER_EXPORTED (0x2) UNTUK ANDROID 14+ ---
+    # --- INJECT RECEIVER_EXPORTED FLAG (0x2) FOR ANDROID 14+ ---
     const/4 v3, 0x2
     invoke-virtual {v2, v0, v1, v3}, Landroid/content/Context;->registerReceiver(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;I)Landroid/content/Intent;
 
@@ -117,28 +117,28 @@ Scroll ke bagian **paling bawah** method tersebut, tepat di **ATAS** `return-voi
 .end method
 ```
 
-#### 3C. Injeksi Otomatis Hapus HBM (Fix Ikon Nyangkut Saat Unlock)
-Agar Ikon HBM buatan kita ikut hilang ketika HP masuk ke *Home Screen* tanpa perlu menahan jari, kita sisipkan instruksi ke dalam sistem penyembunyi ikon bawaan.
+#### 3C. Auto-Destroy HBM Injection (Fix Stuck Icon on Unlock)
+To ensure our custom HBM Icon disappears when the phone enters the *Home Screen* without waiting for the finger to lift, we inject an instruction into the system's native icon hider.
 
-Gunakan fitur pencarian dan cari method ini: 
+Use the search feature and look for this method: 
 🔍 `.method public setVisibility(I)V`
 
-Tepat di **bawah** deklarasi `.registers` (misalnya di bawah baris `.registers 11`), selipkan blok kode pendek ini:
+Right **below** the `.registers` declaration (e.g., below the `.registers 11` line), insert this short code block:
 ```smali
-    # --- [START] FIX ICON PUTIH NYANGKUT SAAT UNLOCK ---
+    # --- [START] FIX WHITE ICON STUCK ON UNLOCK ---
     if-eqz p1, :cond_skip_hbm_destroy
     invoke-virtual {p0}, Lcom/oplus/systemui/biometrics/finger/udfps/OnScreenFingerprintIcon;->destroyHbmSurfaceControl()V
     :cond_skip_hbm_destroy
-    # --- [END] FIX ICON PUTIH NYANGKUT SAAT UNLOCK ---
+    # --- [END] FIX WHITE ICON STUCK ON UNLOCK ---
 ```
 
 
-#### 3D. Injeksi Method HBM (Fix Ikon Hilang & Crash Sentuhan)
-Agar SystemUI tahu cara membuat "layar terang" dan menerima sentuhan, kamu wajib menambahkan 5 method baru di bawah ini.
+#### 3D. HBM Methods Injection (Fix Missing Icon & Touch Crash)
+To teach SystemUI how to create a "bright screen" and receive touches, you must add the following 5 new methods.
 
-Scroll terus ke **baris paling bawah** file `OnScreenFingerprintIcon.smali` (pastikan di luar blok `.end method` mana pun). **Copy dan Paste kelima method ini secara berurutan:**
+Scroll all the way to the **very bottom** of the `OnScreenFingerprintIcon.smali` file (make sure it's outside any `.end method` blocks). **Copy and paste these five methods sequentially:**
 
-**1. Method Pembuat HBM (`createHbmSurfaceControl`)**
+**1. HBM Creator Method (`createHbmSurfaceControl`)**
 ```smali
 .method public createHbmSurfaceControl()V
     .registers 16
@@ -226,7 +226,7 @@ Scroll terus ke **baris paling bawah** file `OnScreenFingerprintIcon.smali` (pas
 .end method
 ```
 
-**2. Method Penghancur HBM (`destroyHbmSurfaceControl`)**
+**2. HBM Destroyer Method (`destroyHbmSurfaceControl`)**
 ```smali
 .method public destroyHbmSurfaceControl()V
     .registers 7
@@ -268,7 +268,7 @@ Scroll terus ke **baris paling bawah** file `OnScreenFingerprintIcon.smali` (pas
 .end method
 ```
 
-**3. Method Deteksi Sentuh (`handleFingerprintKeyPress`)**
+**3. Touch Detection Method (`handleFingerprintKeyPress`)**
 ```smali
 .method public handleFingerprintKeyPress()V
     .registers 3
@@ -284,7 +284,7 @@ Scroll terus ke **baris paling bawah** file `OnScreenFingerprintIcon.smali` (pas
 .end method
 ```
 
-**4. Method Deteksi Lepas Jari (`handleFingerprintKeyRelease`)**
+**4. Touch Release Method (`handleFingerprintKeyRelease`)**
 ```smali
 .method public handleFingerprintKeyRelease()V
     .registers 3
@@ -300,7 +300,7 @@ Scroll terus ke **baris paling bawah** file `OnScreenFingerprintIcon.smali` (pas
 .end method
 ```
 
-**5. Method Sinkronisasi HBM (`setHbmSurfaceControl`)**
+**5. HBM Sync Method (`setHbmSurfaceControl`)**
 ```smali
 .method public setHbmSurfaceControl(Landroid/view/SurfaceControl;)V
     .registers 2
@@ -311,34 +311,34 @@ Scroll terus ke **baris paling bawah** file `OnScreenFingerprintIcon.smali` (pas
 
 ---
 
-### Langkah 4: Patch `OnScreenFingerprintUiMech.smali` (Fix Layar Gelap)
-Masalah layar yang mendadak menjadi gelap pekat (bahkan tanpa disentuh) saat berada di *Lockscreen* atau pengaturan sidik jari disebabkan oleh overlay hitam (*Dim Layer*) yang dibuat sistem. Kita harus menonaktifkannya.
+### Step 4: Patch `OnScreenFingerprintUiMech.smali` (Pitch Black Screen Fix)
+The issue where the screen suddenly goes pitch black (even without touching it) while on the Lockscreen or in the fingerprint enrollment is caused by a black overlay (*Dim Layer*) created by the system. We must disable it.
 
-1. Buka file **`OnScreenFingerprintUiMech.smali`**.
-2. Gunakan pencarian untuk mencari baris kode ini:
+1. Open the **`OnScreenFingerprintUiMech.smali`** file.
+2. Use the search feature to find this line of code:
    🔍 `isDisableAppDimLayer()`
-3. Kamu akan menemukannya di **2 titik berbeda** (biasanya di sekitar baris 1200-an dan 6600-an).
-4. Di **KEDUA** titik tersebut, tambahkan kode `const/4 v0, 0x1` tepat di bawah `move-result v0`, sehingga strukturnya menjadi seperti ini:
+3. You will find it in **2 different locations** (usually around lines 1200+ and 6600+).
+4. In **BOTH** locations, add the code `const/4 v0, 0x1` right beneath `move-result v0`, making the structure look exactly like this:
 
 ```smali
     invoke-static {}, Lcom/oplusos/systemui/common/feature/KeyguardFeatureOption;->isDisableAppDimLayer()Z
     move-result v0
 
-    # --- [START] FIX LAYAR GELAP ---
+    # --- [START] FIX PITCH BLACK SCREEN ---
     const/4 v0, 0x1
-    # --- [END] FIX LAYAR GELAP ---
+    # --- [END] FIX PITCH BLACK SCREEN ---
 ```
-*(Penjelasan: Modifikasi ini memanipulasi parameter di memori sehingga sistem mengira bahwa pengaturan "Disable Dim Layer" bernilai True/1, yang mengakibatkan lapisan hitam batal dirender).*
+*(Explanation: This modification manipulates the parameter in memory, tricking the system into thinking the "Disable Dim Layer" setting is True/1, which forces the system to abort rendering the black overlay).*
 
 ---
 
-## Tahap Akhir: Repack & Sign
+## Final Stage: Repack & Sign
 > [!WARNING]  
-> **JANGAN PERNAH MENGGUNAKAN FITUR AUTO-SIGN!**  
-> Signature pada file *SystemUI* adalah identitas krusial. Melakukan Auto-Sign akan mengubah signature tersebut dan membuat HP mengalami Bootloop (stuck di logo).
+> **NEVER USE THE AUTO-SIGN FEATURE!**  
+> The signature on the *SystemUI* file is a crucial identity mark. Auto-signing it will alter the signature and cause your phone to Bootloop (stuck on the boot logo).
 
-1. Klik tombol Save / Simpan di text editor MT Manager.
-2. Keluar dari editor (*Back*).
-3. Saat muncul kotak dialog `Update file in the archive?`, pastikan kotak **Auto Sign DIMATIKAN (UNCHECK)**.
-4. Klik OK.
-5. Push/install APK `SystemUI.apk` hasil modifikasimu dan *Reboot* perangkat.
+1. Click the Save button in the MT Manager text editor.
+2. Exit the editor (*Back*).
+3. When the `Update file in the archive?` dialogue pops up, make sure the **Auto Sign box is UNCHECKED**.
+4. Click OK.
+5. Push/install your modified `SystemUI.apk` and *Reboot* the device.
